@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário Melhorado</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-clr: #001a00;
+            --secondary-clr: #006633;
+            --accent-clr: #00cc66;
+            --text-light: #878895;
+            --text-dark: #373c4f;
+            --white: #ffffff;
+            --error: #e74c3c;
+            --warning: #f39c12;
+            --success: #27ae60;
+            --border-light: #f5f5f5;
+            --gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1c1c1c;
+            border-radius: 50px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: var(--primary-clr);
+            border-radius: 50px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: var(--accent-clr);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--gradient-bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 2vh 5vw;
+            position: relative;
+        }
+
+        .container {
+            position: relative;
+            width: 95vw;
+            height: 96vh;
+            margin-left: 8vw;
+            padding: 1vh;
+            color: var(--white);
+            display: flex;
+            border-radius: 15px;
+            background-color: var(--secondary-clr);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .left {
+            width: 70%;
+            padding: 1.5vh 1vw;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .calendar-stack {
+            position: relative;
+            width: 95%;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .calendar-page {
+            position: absolute;
+            width: 100%;
+            height: 95%;
+            display: flex;
+            flex-direction: column;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            color: var(--text-light);
+            border-radius: 10px;
+            background-color: var(--white);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .calendar-page:nth-child(1) {
+            z-index: 5;
+            transform: translateX(4px) translateY(4px);
+        }
+
+        .calendar-page:nth-child(2) {
+            z-index: 4;
+            transform: translateX(8px) translateY(8px);
+            background-color: #f8f8f8;
+        }
+
+        .calendar-page:nth-child(3) {
+            z-index: 3;
+            transform: translateX(16px) translateY(16px);
+            background-color: #f0f0f0;
+        }
+
+        .calendar-page:nth-child(4) {
+            z-index: 2;
+            transform: translateX(24px) translateY(24px);
+            background-color: #e8e8e8;
+        }
+
+        .calendar-page:nth-child(5) {
+            z-index: 1;
+            transform: translateX(32px) translateY(32px);
+            background-color: #e0e0e0;
+        }
+
+        .calendar {
+            position: relative;
+            width: 100%;
+            height: 95%;
+            display: flex;
+            flex-direction: column;
+            color: var(--text-light);
+            border-radius: 10px;
+            background-color: var(--white);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            z-index: 5;
+        }
+
+        /* Efeito de páginas com bordas realistas */
+        .calendar-stack::before {
+            content: "";
+            position: absolute;
+            top: 8px;
+            right: -8px;
+            width: 8px;
+            height: calc(100% - 40px);
+            background: linear-gradient(to bottom, 
+                #d0d0d0 0%, 
+                #c0c0c0 25%, 
+                #b0b0b0 50%, 
+                #a0a0a0 75%, 
+                #909090 100%);
+            border-radius: 0 8px 8px 0;
+            z-index: 10;
+            box-shadow: inset -2px 0 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .calendar-stack::after {
+            content: "";
+            position: absolute;
+            bottom: 32px;
+            left: 8px;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(to right, 
+                #d0d0d0 0%, 
+                #c0c0c0 25%, 
+                #b0b0b0 50%, 
+                #a0a0a0 75%, 
+                #909090 100%);
+            border-radius: 0 0 0 8px;
+            z-index: 10;
+            box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Linhas de espiral para efeito de caderno */
+        .calendar::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 30px;
+            width: 2px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0px,
+                transparent 15px,
+                #ff4444 15px,
+                #ff4444 20px,
+                transparent 20px,
+                transparent 35px
+            );
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        .calendar .month {
+            width: 100%;
+            height: 12vh;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 3vw;
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            font-weight: 500;
+            text-transform: capitalize;
+            background: linear-gradient(135deg, var(--primary-clr), var(--accent-clr));
+            color: var(--white);
+            position: relative;
+            z-index: 2;
+        }
+
+        .calendar .month .prev,
+        .calendar .month .next {
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+            color: var(--white);
+            width: clamp(35px, 5vw, 45px);
+            height: clamp(35px, 5vw, 45px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+        }
+
+        .calendar .month .prev:hover,
+        .calendar .month .next:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .current-month {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-weight: 700;
+            color: var(--white);
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .calendar .weekdays {
+            width: 100%;
+            height: 6vh;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1vw;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            font-weight: 600;
+            text-transform: uppercase;
+            background: var(--border-light);
+            border-bottom: 2px solid var(--primary-clr);
+            position: relative;
+            z-index: 2;
+        }
+
+        .weekdays div {
+            width: 14.28%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-clr);
+            letter-spacing: 1px;
+        }
+
+        .calendar .days {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            padding: 0 1vw;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            font-weight: 500;
+            flex: 1;
+            position: relative;
+            z-index: 2;
+            align-content: flex-start;
+        }
+
+        .calendar .days .day {
+            flex-direction: column;
+            width: 14.28%;
+            height: calc((100% - 2vh) / 6);
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--primary-clr);
+            border: 1px solid var(--border-light);
+            position: relative;
+            transition: var(--transition);
+            background: var(--white);
+        }
+
+        .calendar .days .day:hover {
+            background: linear-gradient(135deg, var(--primary-clr), var(--accent-clr));
+            color: var(--white);
+            transform: scale(1.05);
+            z-index: 10;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 26, 0, 0.3);
+        }
+
+        .calendar .days .prev-month,
+        .calendar .days .next-month {
+            color: var(--text-light);
+            background: #fafafa;
+        }
+
+        .calendar .days .prev-month:hover,
+        .calendar .days .next-month:hover {
+            background: var(--text-light);
+            color: var(--white);
+        }
+
+        .calendar .days .active {
+            position: relative;
+            font-size: clamp(0.9rem, 1.8vw, 1.2rem);
+            font-weight: 700;
+            color: var(--white);
+            background: linear-gradient(135deg, var(--primary-clr), var(--accent-clr));
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 26, 0, 0.4);
+        }
+
+        .calendar .days .today {
+            font-size: clamp(0.85rem, 1.6vw, 1.1rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--warning), #ffb74d);
+            color: var(--white);
+            border-radius: 8px;
+        }
+
+        .calendar .days .today:not(.active):hover {
+            background: linear-gradient(135deg, #f57c00, var(--warning));
+        }
+
+        .calendar .days .has-event {
+            position: relative;
+        }
+
+        .calendar .days .has-event::after {
+            content: "";
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            background-color: var(--accent-clr);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); opacity: 1; }
+            50% { transform: translateX(-50%) scale(1.2); opacity: 0.7; }
+            100% { transform: translateX(-50%) scale(1); opacity: 1; }
+        }
+
+        .calendar .days .day:hover.has-event::after {
+            background-color: var(--white);
+        }
+
+        .calendar .days .active.has-event::after {
+            background-color: var(--white);
+        }
+
+        .calendar .days .friday::before {
+            content: '🍖';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 12px;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-3px); }
+        }
+
+        .extra-label {
+            font-size: clamp(8px, 1.2vw, 10px);
+            color: var(--accent-clr);
+            margin-top: 2px;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .day-number {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .calendar .goto-today {
+            width: 100%;
+            height: 7vh;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1vw;
+            padding: 0 1vw;
+            color: var(--primary-clr);
+            background: var(--border-light);
+            position: relative;
+            z-index: 2;
+        }
+
+        .calendar .goto-today .goto {
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--primary-clr);
+            background: var(--white);
+        }
+
+        .calendar .goto-today .goto input {
+            width: clamp(80px, 12vw, 120px);
+            height: clamp(30px, 4vh, 40px);
+            outline: none;
+            border: none;
+            padding: 0 1vw;
+            color: var(--primary-clr);
+            font-weight: 500;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+        }
+
+        .calendar .goto-today button {
+            padding: clamp(8px, 1.5vh, 10px) clamp(10px, 2vw, 15px);
+            border: 2px solid var(--primary-clr);
+            border-radius: 8px;
+            background-color: var(--white);
+            cursor: pointer;
+            color: var(--primary-clr);
+            transition: var(--transition);
+            font-weight: 600;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+        }
+
+        .calendar .goto-today button:hover {
+            color: var(--white);
+            background: linear-gradient(135deg, var(--primary-clr), var(--accent-clr));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 26, 0, 0.3);
+        }
+
+        .calendar .goto-today .goto button {
+            border: none;
+            border-left: 2px solid var(--primary-clr);
+            border-radius: 0;
+        }
+
+        .right {
+            position: relative;
+            width: 40%;
+            height: 100%;
+            padding: 1.5vh 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right .today-date {
+            width: 100%;
+            height: auto;
+            min-height: 8vh;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1vh;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1vh 2vw;
+            margin-bottom: 2vh;
+            text-transform: capitalize;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .right .today-date .event-day {
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .right .today-date .event-date {
+            font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .events {
+            width: 100%;
+            flex: 1;
+            overflow-x: hidden;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding-left: 0.5vw;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-clr) transparent;
+        }
+
+        .events .event {
+            position: relative;
+            width: 95%;
+            min-height: clamp(60px, 8vh, 80px);
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            gap: 0.5vh;
+            padding: clamp(10px, 2vh, 15px) clamp(15px, 2vw, 20px);
+            padding-left: clamp(30px, 4vw, 50px);
+            color: var(--white);
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), transparent);
+            cursor: pointer;
+            margin-bottom: 1vh;
+            border-radius: 10px;
+            transition: var(--transition);
+            border-left: 4px solid var(--accent-clr);
+            backdrop-filter: blur(5px);
+        }
+
+        .events .event:nth-child(even) {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), transparent);
+        }
+
+        .events .event:hover {
+            background: linear-gradient(90deg, var(--primary-clr), var(--accent-clr));
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(0, 26, 0, 0.3);
+        }
+
+        .events .event .title {
+            display: flex;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .events .event .title .event-title {
+            font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+            font-weight: 600;
+            margin-left: clamp(10px, 2vw, 15px);
+        }
+
+        .events .event .category-badge {
+            position: absolute;
+            top: clamp(8px, 1.5vh, 10px);
+            right: clamp(10px, 2vw, 15px);
+            padding: 2px clamp(6px, 1vw, 8px);
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            font-size: clamp(0.6rem, 1.2vw, 0.7rem);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .events .event i {
+            color: var(--accent-clr);
+            font-size: clamp(0.7rem, 1.4vw, 0.8rem);
+        }
+
+        .events .event:hover i {
+            color: var(--white);
+        }
+
+        .events .event .event-time {
+            font-size: clamp(0.8rem, 1.6vw, 0.9rem);
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+            margin-left: clamp(10px, 2vw, 15px);
+            pointer-events: none;
+        }
+
+        .events .event .event-description {
+            font-size: clamp(0.7rem, 1.4vw, 0.8rem);
+            color: rgba(255, 255, 255, 0.7);
+            margin-left: clamp(10px, 2vw, 15px);
+            line-height: 1.3;
+        }
+
+        .events .event::after {
+            content: "🗑️";
+            position: absolute;
+            top: 50%;
+            right: clamp(10px, 2vw, 15px);
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+            transform: translateY(-50%);
+        }
+
+        .events .event:hover::after {
+            display: flex;
+        }
+
+        .add-event {
+            position: absolute;
+            bottom: 3vh;
+            right: 3vw;
+            width: clamp(50px, 8vw, 60px);
+            height: clamp(50px, 8vw, 60px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+            color: var(--white);
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-clr), var(--accent-clr));
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 20px rgba(0, 26, 0, 0.3);
+        }
+
+        .add-event:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 6px 25px rgba(0, 26, 0, 0.4);
+        }
+
+        .add-event i {
+            pointer-events: none;
+        }
+
+        .events .no-event {
+            width: 100%;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+        }
+
+        .no-event i {
+            font-size: clamp(2.5rem, 5vw, 3rem);
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, var(--white), #f8f9fa);
+            border-radius: 15px;
+            padding: clamp(20px, 4vh, 30px);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .modal-title {
+            font-size: clamp(1.5rem, 3vw, 1.8rem);
+            font-weight: 700;
+            color: var(--primary-clr);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            color: var(--text-light);
+            transition: var(--transition);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: var(--error);
+            background: rgba(231, 76, 60, 0.1);
+            transform: rotate(90deg);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--primary-clr);
+            font-size: clamp(0.9rem, 1.8vw, 1rem);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--border-light);
+            border-radius: 10px;
+            font-size: 16px;
+            transition: var(--transition);
+            color: var(--text-dark);
+            background: var(--white);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-clr);
+            box-shadow: 0 0 0 3px rgba(0, 204, 102, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-clr), var(--accent-clr));
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 26, 0, 0.3);
+        }
+
+        .event-categories {
+            display: flex;
+            gap: 0.5vw;
+            margin-bottom: 2vh;
+            flex-wrap: wrap;
+            padding: 0 2vw;
+        }
+
+        .category-btn {
+            padding: clamp(8px, 1.5vh, 12px) clamp(12px, 2vw, 20px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: clamp(0.7rem, 1.4vw, 14px);
+            font-weight: 600;
+            color: var(--white);
+            backdrop-filter: blur(10px);
+        }
+
+        .category-btn.active,
+        .category-btn:hover {
+            background: linear-gradient(135deg, var(--primary-clr), var(--accent-clr));
+            color: white;
+            border-color: var(--accent-clr);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 26, 0, 0.3);
+        }
+
+        .notification {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 20px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            z-index: 1001;
+            transform: translateX(100%);
+            transition: var(--transition);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            min-width: 300px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, var(--success), #2ecc71);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, var(--error), #c0392b);
+        }
+
+        .notification.warning {
+            background: linear-gradient(135deg, var(--warning), #e67e22);
+        }
+
+        .event-stats {
+            display: flex;
+            gap: 1vw;
+            margin-bottom: 2vh;
+            padding: 0 2vw;
+        }
+
+        .stat-card {
+            flex: 1;
+            padding: clamp(10px, 2vh, 15px);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-number {
+            font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+            font-weight: 700;
+            color: var(--accent-clr);
+        }
+
+        .stat-label {
+            font-size: clamp(0.7rem, 1.4vw, 0.8rem);
+            color: rgba(255, 255, 255, 0.8);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        @media screen and (max-width: 1200px) {
+            .container {
+                margin-left: 10vw;
+                width: 85vw;
+            }
+        }
+
+        @media screen and (max-width: 1000px) {
+            body {
+                align-items: flex-start;
+                justify-content: flex-start;
+                padding: 0;
+            }
+            .container {
+                min-height: 100vh;
+                flex-direction: column;
+                border-radius: 0;
+                width: 100%;
+                margin-left: 0;
+                height: auto;
+            }
+            .container .left {
+                width: 100%;
+                height: auto;
+                padding: 15px;
+            }
+            .container .right {
+                width: 100%;
+                height: auto;
+                padding: 15px;
+            }
+            .calendar-stack::before,
+            .calendar-stack::after {
+                display: none;
+            }
+            .calendar-page:nth-child(n+2) {
+                display: none;
+            }
+            .events {
+                max-height: 50vh;
+                padding-bottom: 100px;
+            }
+            .event-stats {
+                padding: 0 15px;
+            }
+        }
+
+        @media screen and (max-width: 500px) {
+            .calendar .month {
+                height: 80px;
+                padding: 0 20px;
+            }
+            .current-month {
+                font-size: 1.5rem;
+            }
+            .calendar .weekdays {
+                height: 50px;
+            }
+            .calendar .days .day {
+                height: 50px;
+                font-size: 0.9rem;
+            }
+            .right .today-date {
+                padding: 20px;
+            }
+            .modal-content {
+                padding: 20px;
+            }
+            .event-categories {
+                gap: 5px;
+            }
+            .category-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left">
+            <div class="calendar-stack">
+                <!-- Páginas empilhadas para criar o efeito visual -->
+                <div class="calendar-page"></div>
+                <div class="calendar-page"></div>
+                <div class="calendar-page"></div>
+                <div class="calendar-page"></div>
+                <div class="calendar-page"></div>
+                
+                <!-- Calendário principal -->
+                <div class="calendar">
+                    <div class="month">
+                        <button class="prev" title="Mês anterior">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="current-month"></div>
+                        <button class="next" title="Próximo mês">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="goto-today">
+                        <div class="goto">
+                            <input type="text" class="date-input" placeholder="MM/AAAA" maxlength="7">
+                            <button class="goto-btn">IR</button>
+                        </div>
+                        <button class="today-btn">HOJE</button>
+                    </div>
+                    
+                    <div class="weekdays">
+                        <div>DOM</div>
+                        <div>SEG</div>
+                        <div>TER</div>
+                        <div>QUA</div>
+                        <div>QUI</div>
+                        <div>SEX</div>
+                        <div>SÁB</div>
+                    </div>
+                    <div class="days"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right">
+            <div class="today-date">
+                <div class="event-day"></div>
+                <div class="event-date"></div>
+            </div>
+
+            <div class="event-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="todayEvents">0</div>
+                    <div class="stat-label">Hoje</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="monthEvents">0</div>
+                    <div class="stat-label">Este Mês</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalEvents">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+            </div>
+
+            <div class="event-categories">
+                <button class="category-btn active" data-category="all">Todos</button>
+                <button class="category-btn" data-category="work">Trabalho</button>
+                <button class="category-btn" data-category="personal">Pessoal</button>
+                <button class="category-btn" data-category="important">Importante</button>
+            </div>
+
+            <div class="events">
+                <div class="no-event">
+                    <i class="fas fa-calendar-plus"></i>
+                    Nenhum evento para este dia
+                </div>
+            </div>
+
+            <button class="add-event" title="Adicionar evento">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Adicionar Evento</h2>
+                <button class="close-btn" title="Fechar">&times;</button>
+            </div>
+            
+            <form id="eventForm">
+                <div class="form-group">
+                    <label class="form-label">Título do Evento</label>
+                    <input type="text" class="form-input" id="eventTitle" maxlength="60" required placeholder="Digite o título do evento">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Categoria</label>
+                    <select class="form-input" id="eventCategory">
+                        <option value="personal">Pessoal</option>
+                        <option value="work">Trabalho</option>
+                        <option value="important">Importante</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Horário</label>
+                    <div class="time-inputs">
+                        <input type="time" class="form-input" id="eventTimeFrom" required>
+                        <input type="time" class="form-input" id="eventTimeTo" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Descrição (opcional)</label>
+                    <textarea class="form-input" id="eventDescription" rows="3" placeholder="Adicione uma descrição..."></textarea>
+                </div>
+                
+                <button type="submit" class="submit-btn">Salvar Evento</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        class Calendar {
+            constructor() {
+                this.today = new Date();
+                this.currentMonth = this.today.getMonth();
+                this.currentYear = this.today.getFullYear();
+                this.selectedDate = this.today.getDate();
+                this.events = JSON.parse(localStorage.getItem('calendar-events')) || [];
+                this.activeCategory = 'all';
+                
+                this.months = [
+                    'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
+                    'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+                ];
+                
+                this.weekdays = ['DOMINGO', 'SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA', 'SÁBADO'];
+                
+                this.categoryColors = {
+                    personal: '#e74c3c',
+                    work: '#3498db',
+                    important: '#f39c12'
+                };
+                
+                this.initElements();
+                this.initEventListeners();
+                this.initKeyboardShortcuts();
+                this.render();
+                this.updateSelectedDate();
+                this.updateStats();
+            }
+            
+            initElements() {
+                this.currentMonthEl = document.querySelector('.current-month');
+                this.daysGrid = document.querySelector('.days');
+                this.prevBtn = document.querySelector('.prev');
+                this.nextBtn = document.querySelector('.next');
+                this.todayBtn = document.querySelector('.today-btn');
+                this.gotoBtn = document.querySelector('.goto-btn');
+                this.dateInput = document.querySelector('.date-input');
+                this.selectedDayEl = document.querySelector('.event-day');
+                this.selectedDateFullEl = document.querySelector('.event-date');
+                this.eventsList = document.querySelector('.events');
+                this.addEventBtn = document.querySelector('.add-event');
+                this.modal = document.getElementById('eventModal');
+                this.closeBtn = document.querySelector('.close-btn');
+                this.eventForm = document.getElementById('eventForm');
+                this.categoryBtns = document.querySelectorAll('.category-btn');
+                this.todayEventsEl = document.getElementById('todayEvents');
+                this.monthEventsEl = document.getElementById('monthEvents');
+                this.totalEventsEl = document.getElementById('totalEvents');
+            }
+            
+            initEventListeners() {
+                this.prevBtn.addEventListener('click', () => this.prevMonth());
+                this.nextBtn.addEventListener('click', () => this.nextMonth());
+                this.todayBtn.addEventListener('click', () => this.goToToday());
+                this.gotoBtn.addEventListener('click', () => this.goToDate());
+                this.dateInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.goToDate();
+                });
+                
+                this.addEventBtn.addEventListener('click', () => this.openModal());
+                this.closeBtn.addEventListener('click', () => this.closeModal());
+                this.modal.addEventListener('click', (e) => {
+                    if (e.target === this.modal) this.closeModal();
+                });
+                
+                this.eventForm.addEventListener('submit', (e) => this.handleEventSubmit(e));
+                
+                this.categoryBtns.forEach(btn => {
+                    btn.addEventListener('click', () => this.filterEvents(btn.dataset.category));
+                });
+                
+                // Formatação aprimorada do input de data
+                this.dateInput.addEventListener('input', (e) => {
+                    let value = e.target.value.replace(/[^0-9]/g, '');
+                    if (value.length >= 2) {
+                        value = value.substring(0, 2) + '/' + value.substring(2, 6);
+                    }
+                    e.target.value = value;
+                });
+
+                // Validação em tempo real do formulário
+                document.getElementById('eventTitle').addEventListener('input', this.validateForm.bind(this));
+                document.getElementById('eventTimeFrom').addEventListener('change', this.validateForm.bind(this));
+                document.getElementById('eventTimeTo').addEventListener('change', this.validateForm.bind(this));
+            }
+
+            initKeyboardShortcuts() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                    
+                    switch(e.key) {
+                        case 'ArrowLeft':
+                            e.preventDefault();
+                            this.prevMonth();
+                            break;
+                        case 'ArrowRight':
+                            e.preventDefault();
+                            this.nextMonth();
+                            break;
+                        case 'n':
+                        case 'N':
+                            if (e.ctrlKey) {
+                                e.preventDefault();
+                                this.openModal();
+                            }
+                            break;
+                        case 't':
+                        case 'T':
+                            e.preventDefault();
+                            this.goToToday();
+                            break;
+                        case 'Escape':
+                            this.closeModal();
+                            break;
+                    }
+                });
+            }
+
+            validateForm() {
+                const title = document.getElementById('eventTitle').value.trim();
+                const timeFrom = document.getElementById('eventTimeFrom').value;
+                const timeTo = document.getElementById('eventTimeTo').value;
+                const submitBtn = document.querySelector('.submit-btn');
+                
+                const isValid = title && timeFrom && timeTo && timeFrom < timeTo;
+                submitBtn.disabled = !isValid;
+                submitBtn.style.opacity = isValid ? '1' : '0.5';
+            }
+            
+            render() {
+                this.currentMonthEl.textContent = `${this.months[this.currentMonth]} ${this.currentYear}`;
+                this.renderDays();
+                this.renderEvents();
+                this.updateStats();
+            }
+            
+            renderDays() {
+                const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+                const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+                const prevLastDay = new Date(this.currentYear, this.currentMonth, 0);
+                
+                const startDate = firstDay.getDay();
+                const endDate = lastDay.getDate();
+                const prevEndDate = prevLastDay.getDate();
+                
+                let daysHtml = '';
+                
+                // Dias do mês anterior
+                for (let i = startDate; i > 0; i--) {
+                    const day = prevEndDate - i + 1;
+                    daysHtml += `<div class="day prev-month" data-day="${day}" data-month="${this.currentMonth - 1}" data-year="${this.currentYear}">
+                        <span class="day-number">${day}</span>
+                    </div>`;
+                }
+                
+                // Dias do mês atual
+                for (let day = 1; day <= endDate; day++) {
+                    const date = new Date(this.currentYear, this.currentMonth, day);
+                    const dayOfWeek = date.getDay();
+                    const isToday = this.isToday(day);
+                    const isSelected = day === this.selectedDate;
+                    const isFriday = dayOfWeek === 5;
+                    const hasEvents = this.hasEventsOnDate(day, this.currentMonth + 1, this.currentYear);
+                    
+                    let classes = 'day';
+                    if (isToday) classes += ' today';
+                    if (isSelected) classes += ' active';
+                    if (isFriday) classes += ' friday';
+                    if (hasEvents) classes += ' has-event';
+                    
+                    daysHtml += `<div class="${classes}" data-day="${day}" data-month="${this.currentMonth}" data-year="${this.currentYear}">
+                        <span class="day-number">${day}</span>
+                        ${this.getEventCountHtml(day)}
+                    </div>`;
+                }
+                
+                // Dias do próximo mês
+                const remainingCells = 42 - (startDate + endDate);
+                for (let day = 1; day <= remainingCells; day++) {
+                    daysHtml += `<div class="day next-month" data-day="${day}" data-month="${this.currentMonth + 1}" data-year="${this.currentYear}">
+                        <span class="day-number">${day}</span>
+                    </div>`;
+                }
+                
+                this.daysGrid.innerHTML = daysHtml;
+                
+                // Adicionar event listeners aos dias
+                this.daysGrid.querySelectorAll('.day').forEach(day => {
+                    day.addEventListener('click', () => this.selectDay(day));
+                });
+            }
+            
+            getEventCountHtml(day) {
+                const events = this.getEventsForDate(day, this.currentMonth + 1, this.currentYear);
+                if (events.length === 0) return '';
+                
+                return `<div class="extra-label">${events.length}</div>`;
+            }
+            
+            selectDay(dayEl) {
+                // Remove active class from all days
+                this.daysGrid.querySelectorAll('.day').forEach(d => d.classList.remove('active'));
+                
+                // Add active class to selected day
+                dayEl.classList.add('active');
+                
+                const day = parseInt(dayEl.dataset.day);
+                const month = parseInt(dayEl.dataset.month);
+                const year = parseInt(dayEl.dataset.year);
+                
+                // Handle month navigation if clicking on prev/next month days
+                if (dayEl.classList.contains('prev-month')) {
+                    this.prevMonth();
+                    setTimeout(() => {
+                        this.selectedDate = day;
+                        this.updateSelectedDate();
+                        this.renderEvents();
+                    }, 100);
+                } else if (dayEl.classList.contains('next-month')) {
+                    this.nextMonth();
+                    setTimeout(() => {
+                        this.selectedDate = day;
+                        this.updateSelectedDate();
+                        this.renderEvents();
+                    }, 100);
+                } else {
+                    this.selectedDate = day;
+                    this.updateSelectedDate();
+                    this.renderEvents();
+                }
+            }
+            
+            updateSelectedDate() {
+                const date = new Date(this.currentYear, this.currentMonth, this.selectedDate);
+                const dayName = this.weekdays[date.getDay()];
+                
+                this.selectedDayEl.textContent = dayName;
+                this.selectedDateFullEl.textContent = `${this.selectedDate} DE ${this.months[this.currentMonth]} DE ${this.currentYear}`;
+            }
+            
+            renderEvents() {
+                let events = this.getEventsForDate(this.selectedDate, this.currentMonth + 1, this.currentYear);
+                
+                // Filtrar por categoria se necessário
+                if (this.activeCategory !== 'all') {
+                    events = events.filter(event => event.category === this.activeCategory);
+                }
+
+                // Ordenar eventos por horário
+                events.sort((a, b) => a.timeFrom.localeCompare(b.timeFrom));
+                
+                if (events.length === 0) {
+                    this.eventsList.innerHTML = `
+                        <div class="no-event">
+                            <i class="fas fa-calendar-plus"></i>
+                            ${this.activeCategory === 'all' ? 'Nenhum evento para este dia' : `Nenhum evento de ${this.getCategoryLabel(this.activeCategory)} para este dia`}
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let eventsHtml = '';
+                events.forEach(event => {
+                    const categoryColor = this.categoryColors[event.category] || '#6c757d';
+                    eventsHtml += `
+                        <div class="event" data-event-id="${event.id}" style="border-left-color: ${categoryColor}">
+                            <div class="title">
+                                <i class="fas fa-circle" style="color: ${categoryColor}"></i>
+                                <span class="event-title">${event.title}</span>
+                                <span class="category-badge">${this.getCategoryLabel(event.category)}</span>
+                            </div>
+                            <div class="event-time">
+                                <i class="fas fa-clock"></i> ${this.formatTime(event.timeFrom)} - ${this.formatTime(event.timeTo)}
+                            </div>
+                            ${event.description ? `<div class="event-description">${event.description}</div>` : ''}
+                        </div>
+                    `;
+                });
+                
+                this.eventsList.innerHTML = eventsHtml;
+                
+                // Add click listeners to events for deletion
+                this.eventsList.querySelectorAll('.event').forEach(item => {
+                    item.addEventListener('click', () => this.deleteEvent(item.dataset.eventId));
+                });
+            }
+
+            formatTime(time) {
+                const [hours, minutes] = time.split(':');
+                return `${hours}:${minutes}`;
+            }
+
+            getCategoryLabel(category) {
+                const labels = {
+                    personal: 'Pessoal',
+                    work: 'Trabalho',
+                    important: 'Importante'
+                };
+                return labels[category] || category;
+            }
+            
+            filterEvents(category) {
+                this.categoryBtns.forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`[data-category="${category}"]`).classList.add('active');
+                
+                this.activeCategory = category;
+                this.renderEvents();
+            }
+
+            updateStats() {
+                const today = new Date();
+                const todayEvents = this.getEventsForDate(today.getDate(), today.getMonth() + 1, today.getFullYear()).length;
+                
+                const monthEvents = this.events.filter(event => 
+                    event.month === this.currentMonth + 1 && event.year === this.currentYear
+                ).length;
+                
+                const totalEvents = this.events.length;
+                
+                this.todayEventsEl.textContent = todayEvents;
+                this.monthEventsEl.textContent = monthEvents;
+                this.totalEventsEl.textContent = totalEvents;
+            }
+            
+            openModal() {
+                this.modal.classList.add('active');
+                document.getElementById('eventTitle').focus();
+                this.validateForm();
+            }
+            
+            closeModal() {
+                this.modal.classList.remove('active');
+                this.eventForm.reset();
+                this.validateForm();
+            }
+            
+            handleEventSubmit(e) {
+                e.preventDefault();
+                
+                const title = document.getElementById('eventTitle').value.trim();
+                const category = document.getElementById('eventCategory').value;
+                const timeFrom = document.getElementById('eventTimeFrom').value;
+                const timeTo = document.getElementById('eventTimeTo').value;
+                const description = document.getElementById('eventDescription').value.trim();
+                
+                if (!title || !timeFrom || !timeTo) {
+                    this.showNotification('Por favor, preencha todos os campos obrigatórios', 'error');
+                    return;
+                }
+                
+                // Validate time
+                if (timeFrom >= timeTo) {
+                    this.showNotification('O horário de início deve ser anterior ao horário de término', 'error');
+                    return;
+                }
+
+                // Check for time conflicts
+                const existingEvents = this.getEventsForDate(this.selectedDate, this.currentMonth + 1, this.currentYear);
+                const hasConflict = existingEvents.some(event => {
+                    return (timeFrom >= event.timeFrom && timeFrom < event.timeTo) ||
+                           (timeTo > event.timeFrom && timeTo <= event.timeTo) ||
+                           (timeFrom <= event.timeFrom && timeTo >= event.timeTo);
+                });
+
+                if (hasConflict) {
+                    if (!confirm('Há um conflito de horário com outro evento. Deseja continuar mesmo assim?')) {
+                        return;
+                    }
+                }
+                
+                const newEvent = {
+                    id: Date.now().toString(),
+                    title,
+                    category,
+                    timeFrom,
+                    timeTo,
+                    description,
+                    day: this.selectedDate,
+                    month: this.currentMonth + 1,
+                    year: this.currentYear
+                };
+                
+                this.events.push(newEvent);
+                this.saveEvents();
+                this.closeModal();
+                this.render();
+                
+                this.showNotification('Evento adicionado com sucesso!', 'success');
+            }
+            
+            deleteEvent(eventId) {
+                if (confirm('Deseja realmente excluir este evento?')) {
+                    this.events = this.events.filter(event => event.id !== eventId);
+                    this.saveEvents();
+                    this.render();
+                    this.showNotification('Evento excluído com sucesso!', 'success');
+                }
+            }
+            
+            getEventsForDate(day, month, year) {
+                return this.events.filter(event => 
+                    event.day === day && 
+                    event.month === month && 
+                    event.year === year
+                );
+            }
+            
+            hasEventsOnDate(day, month, year) {
+                return this.getEventsForDate(day, month, year).length > 0;
+            }
+            
+            isToday(day) {
+                return day === this.today.getDate() && 
+                       this.currentMonth === this.today.getMonth() && 
+                       this.currentYear === this.today.getFullYear();
+            }
+            
+            prevMonth() {
+                if (this.currentMonth === 0) {
+                    this.currentMonth = 11;
+                    this.currentYear--;
+                } else {
+                    this.currentMonth--;
+                }
+                this.render();
+            }
+            
+            nextMonth() {
+                if (this.currentMonth === 11) {
+                    this.currentMonth = 0;
+                    this.currentYear++;
+                } else {
+                    this.currentMonth++;
+                }
+                this.render();
+            }
+            
+            goToToday() {
+                this.currentMonth = this.today.getMonth();
+                this.currentYear = this.today.getFullYear();
+                this.selectedDate = this.today.getDate();
+                this.render();
+                this.updateSelectedDate();
+            }
+            
+            goToDate() {
+                const input = this.dateInput.value.trim();
+                if (!input) return;
+                
+                const [month, year] = input.split('/');
+                const monthNum = parseInt(month);
+                const yearNum = parseInt(year);
+                
+                if (monthNum < 1 || monthNum > 12 || yearNum < 1000 || yearNum > 9999) {
+                    this.showNotification('Data inválida. Use o formato MM/AAAA', 'error');
+                    return;
+                }
+                
+                this.currentMonth = monthNum - 1;
+                this.currentYear = yearNum;
+                this.selectedDate = 1;
+                this.render();
+                this.updateSelectedDate();
+                this.dateInput.value = '';
+            }
+            
+            saveEvents() {
+                localStorage.setItem('calendar-events', JSON.stringify(this.events));
+            }
+            
+            showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'exclamation-triangle'}"></i>
+                    ${message}
+                `;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => notification.classList.add('show'), 100);
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (document.body.contains(notification)) {
+                            document.body.removeChild(notification);
+                        }
+                    }, 300);
+                }, 4000);
+            }
+        }
+        
+        // Initialize calendar when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new Calendar();
+        });
+    </script>
+</body>
+</html>
