@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Contas de E-mail</title>
+    <meta name="description" content="Gerencie suas contas de e-mail de forma segura e portátil">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="STYLE3.CSS">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema"></button>
+
+    <!-- Loading Overlay com melhor UX -->
+    <div class="loading-overlay" id="loading-overlay" aria-hidden="true">
+        <div class="loading-content">
+            <div class="loading-spinner" role="status" aria-label="Carregando"></div>
+            <p id="loading-message">Processando...</p>
+            <div class="loading-progress">
+                <div class="loading-progress-bar" id="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação aprimorado -->
+    <div class="modal" id="confirmation-modal" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-icon" id="modal-icon">⚠️</div>
+            <h3 id="modal-title">Confirmar Ação</h3>
+            <p id="modal-message">Tem certeza que deseja realizar esta ação?</p>
+            <div class="modal-actions">
+                <button class="btn btn-danger" id="modal-confirm">Confirmar</button>
+                <button class="btn btn-secondary" id="modal-cancel">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast aprimorado -->
+    <div class="toast" id="toast" role="alert" aria-live="polite">
+        <div class="toast-icon" id="toast-icon"></div>
+        <div class="toast-content">
+            <div class="toast-title" id="toast-title"></div>
+            <div class="toast-message" id="toast-message"></div>
+        </div>
+        <button class="toast-close" onclick="hideToast()" aria-label="Fechar notificação">×</button>
+    </div>
+
+    <div class="container fade-in">
+        <div class="header">
+            <h1>🔐 Gerenciador de Contas</h1>
+            <p>Gerencie suas contas de e-mail de forma segura e portátil</p>
+        </div>
+
+        <div class="main-content">
+            <div class="tabs" role="tablist">
+                <button class="tab active" role="tab" aria-selected="true" aria-controls="file-manager" onclick="switchTab('file-manager')">
+                    <span>📁</span> Arquivo
+                </button>
+                <button class="tab" role="tab" aria-selected="false" aria-controls="dashboard" onclick="switchTab('dashboard')">
+                    <span>📊</span> Dashboard
+                </button>
+                <button class="tab" role="tab" aria-selected="false" aria-controls="add-account" onclick="switchTab('add-account')">
+                    <span>➕</span> Adicionar
+                </button>
+                <button class="tab" role="tab" aria-selected="false" aria-controls="accounts" onclick="switchTab('accounts')">
+                    <span>👥</span> Contas
+                </button>
+                <button class="tab" role="tab" aria-selected="false" aria-controls="backup" onclick="switchTab('backup')">
+                    <span>💾</span> Backup
+                </button>
+            </div>
+
+            <!-- File Manager Tab -->
+            <div id="file-manager" class="tab-content active" role="tabpanel">
+                <div class="security-info">
+                    <h3>📁 Gerenciamento de Arquivo</h3>
+                    <p>Suas contas são salvas localmente em um arquivo JSON criptografado. Você pode transportar este arquivo entre dispositivos e sempre manter suas informações seguras e acessíveis.</p>
+                </div>
+
+                <div class="file-status" id="file-status">
+                    <p>📄 Nenhum arquivo carregado</p>
+                    <small>Crie um novo arquivo ou carregue um existente para começar</small>
+                </div>
+
+                <div class="file-controls">
+                    <button class="btn btn-success" onclick="createNewFile()">
+                        📄 Novo Arquivo
+                    </button>
+                    <button class="btn" onclick="loadFile()">
+                        📂 Carregar Arquivo
+                    </button>
+                    <button class="btn btn-warning" onclick="saveFile()" id="save-btn" disabled>
+                        💾 Salvar
+                    </button>
+                    <button class="btn btn-info" onclick="saveAsFile()" id="save-as-btn" disabled>
+                        💾 Salvar Como...
+                    </button>
+                    <button class="btn btn-outline" onclick="exportData()" id="export-btn" disabled>
+                        📤 Exportar
+                    </button>
+                </div>
+
+                <input type="file" id="load-file-input" style="display: none;" accept=".json,.ema" aria-label="Arquivo para carregar">
+
+                <div id="file-info" style="display: none;">
+                    <h4>📋 Informações do Arquivo</h4>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="file-account-count">0</div>
+                            <div class="stat-label">Contas</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="file-size">0 KB</div>
+                            <div class="stat-label">Tamanho</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-time">Nome do arquivo</div>
+                        <div class="activity-message" id="current-filename">-</div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-time">Última modificação</div>
+                        <div class="activity-message" id="last-modified">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content" role="tabpanel">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-accounts">0</div>
+                        <div class="stat-label">Total de Contas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="active-accounts">0</div>
+                        <div class="stat-label">Contas Ativas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="provider-count">0</div>
+                        <div class="stat-label">Provedores</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="security-score">0%</div>
+                        <div class="stat-label">Segurança</div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="btn" onclick="confirmAction('loginAllAccounts', 'Marcar todas as contas como online?')">
+                        🚀 Login Todas
+                    </button>
+                    <button class="btn btn-success" onclick="checkAccountStatus()">
+                        🔍 Verificar Status
+                    </button>
+                    <button class="btn btn-danger" onclick="confirmAction('logoutAllAccounts', 'Desconectar todas as contas?')">
+                        🚪 Logout Todas
+                    </button>
+                    <button class="btn btn-info" onclick="generateSecurityReport()">
+                        🛡️ Relatório Segurança
+                    </button>
+                </div>
+
+                <div id="recent-activity">
+                    <h3>📝 Atividade Recente</h3>
+                    <div id="activity-log"></div>
+                </div>
+            </div>
+
+            <!-- Add Account Tab -->
+            <div id="add-account" class="tab-content" role="tabpanel">
+                <div class="security-info">
+                    <h3>🛡️ Adicionar Nova Conta</h3>
+                    <p>Preencha as informações da conta com cuidado. Todas as senhas são armazenadas de forma segura e podem ser visualizadas quando necessário. Use senhas fortes e ative a autenticação de dois fatores sempre que possível.</p>
+                </div>
+
+                <form id="account-form" novalidate>
+                    <div class="form-group floating">
+                        <input type="email" id="email" required autocomplete="email" placeholder=" ">
+                        <label for="email" class="label-required">E-mail</label>
+                        <div class="help-text">Digite o endereço de e-mail completo</div>
+                        <div class="error-message" id="email-error" role="alert"></div>
+                    </div>
+
+                    <div class="form-group floating">
+                        <div class="input-group">
+                            <input type="password" id="password" required autocomplete="new-password" placeholder=" ">
+                            <label for="password" class="label-required">Senha</label>
+                            <div class="input-group-append">
+                                <button type="button" class="password-toggle" onclick="togglePassword('password')" 
+                                        aria-label="Mostrar/ocultar senha" tabindex="-1">👁️</button>
+                            </div>
+                        </div>
+                        <div class="strength-meter">
+                            <div class="strength-fill" id="password-strength-fill"></div>
+                        </div>
+                        <div class="help-text" id="password-strength" aria-live="polite">Use pelo menos 8 caracteres com letras, números e símbolos</div>
+                        <div class="error-message" id="password-error" role="alert"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="provider" class="label-required">Provedor</label>
+                        <select id="provider" required aria-describedby="provider-error">
+                            <option value="">Selecione o provedor...</option>
+                            <option value="gmail">Gmail (Google)</option>
+                            <option value="outlook">Outlook (Microsoft)</option>
+                            <option value="yahoo">Yahoo Mail</option>
+                            <option value="hotmail">Hotmail</option>
+                            <option value="icloud">iCloud (Apple)</option>
+                            <option value="other">Outro provedor</option>
+                        </select>
+                        <div class="error-message" id="provider-error" role="alert"></div>
+                    </div>
+
+                    <div class="form-group floating">
+                        <input type="text" id="name" placeholder=" ">
+                        <label for="name">Nome da Conta</label>
+                        <div class="help-text">Nome descritivo para identificar esta conta (opcional)</div>
+                    </div>
+
+                    <div class="form-group floating">
+                        <textarea id="notes" rows="3" placeholder=" "></textarea>
+                        <label for="notes">Observações</label>
+                        <div class="help-text">Adicione qualquer informação adicional relevante</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enable-2fa"> 
+                            Autenticação de Dois Fatores (2FA) ativada
+                        </label>
+                        <div class="help-text">Marque se esta conta possui 2FA configurado</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="is-primary"> 
+                            Conta principal
+                        </label>
+                        <div class="help-text">Marque se esta é sua conta principal deste provedor</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-lg">
+                        <span>➕</span> Adicionar Conta
+                    </button>
+                </form>
+            </div>
+
+            <!-- Accounts Management Tab -->
+            <div id="accounts" class="tab-content" role="tabpanel">
+                <h3>👥 Suas Contas</h3>
+                
+                <div class="search-filter">
+                    <div class="form-group">
+                        <label for="search-accounts">Pesquisar</label>
+                        <input type="text" id="search-accounts" placeholder="Pesquisar por e-mail, nome ou provedor...">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-provider">Provedor</label>
+                        <select id="filter-provider">
+                            <option value="">Todos os provedores</option>
+                            <option value="gmail">Gmail</option>
+                            <option value="outlook">Outlook</option>
+                            <option value="yahoo">Yahoo</option>
+                            <option value="hotmail">Hotmail</option>
+                            <option value="icloud">iCloud</option>
+                            <option value="other">Outros</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-status">Status</label>
+                        <select id="filter-status">
+                            <option value="">Todos os status</option>
+                            <option value="online">Online</option>
+                            <option value="offline">Offline</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="accounts-container" class="accounts-grid">
+                    <!-- Accounts will be loaded here -->
+                </div>
+
+                <div class="pagination" id="pagination">
+                    <!-- Pagination will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Backup Tab -->
+            <div id="backup" class="tab-content" role="tabpanel">
+                <div class="backup-info">
+                    <h4>💾 Sistema de Backup</h4>
+                    <p>Mantenha suas contas sempre seguras com backups automáticos e manuais. 
+                       Configure backups regulares para nunca perder suas informações importantes.</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="backup-count">0</div>
+                        <div class="stat-label">Backups Criados</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="last-backup-date">Nunca</div>
+                        <div class="stat-label">Último Backup</div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="btn btn-success" onclick="createBackup()">
+                        💾 Criar Backup
+                    </button>
+                    <button class="btn btn-info" onclick="scheduleBackup()">
+                        ⏰ Agendar Backup
+                    </button>
+                    <button class="btn" onclick="restoreBackup()">
+                        🔄 Restaurar Backup
+                    </button>
+                    <button class="btn btn-warning" onclick="exportEncrypted()">
+                        🔐 Exportar Criptografado
+                    </button>
+                </div>
+
+                <div id="backup-history">
+                    <h4>📋 Histórico de Backups</h4>
+                    <div id="backup-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="SCRIPT2.JS"></script>
+</body>
+</html>
