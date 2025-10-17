@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Controle de Despesas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+      :root {
+        --primary-color: #3a86ff;
+        --success-color: #2ecc71;
+        --danger-color: #e74c3c;
+        --dark-color: #2d3748;
+        --light-color: #f8f9fa;
+        --gray-color: #e2e8f0;
+        --text-color: #444;
+        --border-radius: 10px;
+        --box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: #f5f7fa;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-color);
+        line-height: 1.6;
+        padding: 30px 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        font-size: 2.2rem;
+        color: var(--primary-color);
+        margin-bottom: 8px;
+      }
+
+      .header p {
+        color: #777;
+        font-size: 1rem;
+      }
+
+      .container {
+        width: 90%;
+        max-width: 450px;
+        margin: 0 auto;
+      }
+
+      .balance-card {
+        background: linear-gradient(120deg, var(--primary-color), #4361ee);
+        color: white;
+        padding: 25px;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        margin-bottom: 25px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .balance-card::before {
+        content: '';
+        position: absolute;
+        top: -50px;
+        right: -50px;
+        background-color: rgba(255, 255, 255, 0.1);
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+      }
+
+      .balance-card h3 {
+        font-size: 1rem;
+        font-weight: 500;
+        margin-bottom: 10px;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .balance-card h2 {
+        font-size: 2.5rem;
+        margin-bottom: 5px;
+        font-weight: 600;
+      }
+
+      .inc-exp-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .card {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        transition: var(--transition);
+      }
+
+      .card:hover {
+        transform: translateY(-5px);
+      }
+
+      .card h4 {
+        font-size: 0.9rem;
+        color: #777;
+        font-weight: 500;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+
+      .card .money {
+        font-size: 1.8rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+      }
+
+      .card .money i {
+        margin-right: 8px;
+        font-size: 1.3rem;
+      }
+
+      .income-card .money {
+        color: var(--success-color);
+      }
+
+      .expense-card .money {
+        color: var(--danger-color);
+      }
+
+      .transactions-container {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 25px;
+        margin-bottom: 30px;
+      }
+
+      .transactions-container h3 {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+        color: var(--dark-color);
+        font-weight: 600;
+        position: relative;
+        padding-bottom: 10px;
+      }
+
+      .transactions-container h3::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background-color: var(--primary-color);
+        border-radius: 3px;
+      }
+
+      .transactions {
+        list-style-type: none;
+        max-height: 350px;
+        overflow-y: auto;
+        padding-right: 5px;
+      }
+
+      .transactions::-webkit-scrollbar {
+        width: 5px;
+      }
+
+      .transactions::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      .transactions::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 5px;
+      }
+
+      .transactions li {
+        background-color: var(--light-color);
+        padding: 15px;
+        border-radius: var(--border-radius);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        transition: var(--transition);
+        position: relative;
+      }
+
+      .transactions li:hover {
+        transform: translateX(5px);
+      }
+
+      .transactions li.plus {
+        border-left: 4px solid var(--success-color);
+      }
+
+      .transactions li.minus {
+        border-left: 4px solid var(--danger-color);
+      }
+
+      .transactions li .transaction-name {
+        display: flex;
+        align-items: center;
+      }
+
+      .transactions li .icon {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        font-size: 0.9rem;
+      }
+
+      .transactions li.plus .icon {
+        background-color: rgba(46, 204, 113, 0.2);
+        color: var(--success-color);
+      }
+
+      .transactions li.minus .icon {
+        background-color: rgba(231, 76, 60, 0.2);
+        color: var(--danger-color);
+      }
+
+      .transactions li .amount {
+        font-weight: 600;
+      }
+
+      .transactions li.plus .amount {
+        color: var(--success-color);
+      }
+
+      .transactions li.minus .amount {
+        color: var(--danger-color);
+      }
+
+      .delete-btn {
+        background-color: transparent;
+        border: none;
+        color: #aaa;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: var(--transition);
+        padding: 5px;
+        margin-left: 10px;
+      }
+
+      .delete-btn:hover {
+        color: var(--danger-color);
+      }
+
+      .add-transaction {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        padding: 25px;
+      }
+
+      .add-transaction h3 {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+        color: var(--dark-color);
+        font-weight: 600;
+        position: relative;
+        padding-bottom: 10px;
+      }
+
+      .add-transaction h3::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background-color: var(--primary-color);
+        border-radius: 3px;
+      }
+
+      .form-control {
+        margin-bottom: 20px;
+      }
+
+      .form-control label {
+        display: block;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+        color: #555;
+        font-weight: 500;
+      }
+
+      .form-control input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid var(--gray-color);
+        border-radius: var(--border-radius);
+        font-size: 1rem;
+        transition: var(--transition);
+        font-family: 'Poppins', sans-serif;
+      }
+
+      .form-control input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(58, 134, 255, 0.2);
+      }
+
+      .form-control .helper-text {
+        font-size: 0.8rem;
+        color: #777;
+        margin-top: 5px;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 12px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: var(--border-radius);
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .btn i {
+        margin-right: 8px;
+      }
+
+      .btn:hover {
+        background-color: #2a75e0;
+        transform: translateY(-2px);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .no-transactions {
+        text-align: center;
+        padding: 20px;
+        color: #777;
+      }
+
+      .no-transactions i {
+        font-size: 2.5rem;
+        color: #ddd;
+        margin-bottom: 10px;
+      }
+
+      /* Responsividade */
+      @media (max-width: 500px) {
+        .container {
+          width: 95%;
+        }
+        
+        .balance-card h2 {
+          font-size: 2rem;
+        }
+        
+        .card .money {
+          font-size: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="header">
+      <h1>Controle de Despesas</h1>
+      <p>Gerencie suas finanças com facilidade</p>
+    </div>
+
+    <div class="container">
+      <div class="balance-card">
+        <h3>Saldo atual</h3>
+        <h2 id="balance">R$ 0,00</h2>
+      </div>
+
+      <div class="inc-exp-container">
+        <div class="card income-card">
+          <h4>Receitas</h4>
+          <div id="money-plus" class="money">
+            <i class="fas fa-arrow-up"></i>
+            R$ 0,00
+          </div>
+        </div>
+
+        <div class="card expense-card">
+          <h4>Despesas</h4>
+          <div id="money-minus" class="money">
+            <i class="fas fa-arrow-down"></i>
+            R$ 0,00
+          </div>
+        </div>
+      </div>
+
+      <div class="transactions-container">
+        <h3>Transações</h3>
+        <ul id="transactions" class="transactions">
+          <!-- Transações serão adicionadas pelo JavaScript -->
+        </ul>
+      </div>
+
+      <div class="add-transaction">
+        <h3>Adicionar transação</h3>
+        <form id="form">
+          <div class="form-control">
+            <label for="text">Nome</label>
+            <input
+              type="text"
+              id="text"
+              placeholder="Digite o nome da transação"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="form-control">
+            <label for="amount">Valor</label>
+            <input type="number" id="amount" placeholder="Digite o valor" />
+            <div class="helper-text">
+              Use valores negativos (-) para despesas e positivos para receitas
+            </div>
+          </div>
+
+          <button class="btn" type="submit">
+            <i class="fas fa-plus-circle"></i> Adicionar transação
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // SELECIONA O ELEMENTO UL COM ID 'transactions' PARA LISTAR AS TRANSAÇÕES
+      const transactionsUl = document.querySelector('#transactions');
+      // SELECIONA OS ELEMENTOS PARA EXIBIR A RECEITA, DESPESAS E SALDO
+      const incomeDisplay = document.querySelector('#money-plus');
+      const expenseDisplay = document.querySelector('#money-minus');
+      const balanceDisplay = document.querySelector('#balance');
+      // SELECIONA O FORMULÁRIO E SEUS INPUTS
+      const form = document.querySelector('#form');
+      const inputTransactionName = document.querySelector('#text');
+      const inputTransactionAmount = document.querySelector('#amount');
+
+      // RECUPERA AS TRANSAÇÕES DO LOCAL STORAGE
+      const localStorageTransactions = JSON.parse(localStorage.getItem('transactions'));
+      let transactions = localStorage.getItem('transactions') !== null ? localStorageTransactions : [];
+
+      // FUNÇÃO PARA CHECAR SE EXISTEM TRANSAÇÕES E EXIBIR MENSAGEM CASO NÃO EXISTAM
+      const checkEmptyTransactions = () => {
+        if (transactions.length === 0) {
+          transactionsUl.innerHTML = `
+            <div class="no-transactions">
+              <i class="fas fa-receipt"></i>
+              <p>Nenhuma transação cadastrada</p>
+            </div>
+          `;
+        }
+      };
+
+      // FUNÇÃO PARA REMOVER UMA TRANSAÇÃO PELO ID
+      const removeTransaction = ID => {
+        transactions = transactions.filter(transaction => transaction.id !== ID);
+        updateLocalStorage();
+        init();
+      };
+
+      // FUNÇÃO PARA FORMATAR UM VALOR COMO MOEDA BRASILEIRA
+      const formatCurrency = value => {
+        return value.toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL'
+        });
+      };
+
+      // FUNÇÃO PARA ADICIONAR UMA TRANSAÇÃO NO DOM
+      const addTransactionIntoDOM = transaction => {
+        const isNegative = transaction.amount < 0;
+        const CSSClass = isNegative ? 'minus' : 'plus';
+        const icon = isNegative ? 'fas fa-shopping-cart' : 'fas fa-dollar-sign';
+        const amountWithoutOperator = Math.abs(transaction.amount);
+        const formattedAmount = formatCurrency(amountWithoutOperator);
+
+        const li = document.createElement('li');
+        li.classList.add(CSSClass);
+        li.innerHTML = `
+          <div class="transaction-name">
+            <div class="icon"><i class="${icon}"></i></div>
+            ${transaction.name}
+          </div>
+          <div class="amount-container">
+            <span class="amount">${isNegative ? '-' : '+'} ${formattedAmount}</span>
+            <button class="delete-btn" onclick="removeTransaction(${transaction.id})">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        `;
+
+        transactionsUl.appendChild(li);
+      };
+
+      // FUNÇÃO PARA ATUALIZAR OS VALORES DO SALDO, RECEITA E DESPESA
+      const updateBalanceValues = () => {
+        const transactionAmounts = transactions.map(transaction => transaction.amount);
+        
+        const total = transactionAmounts.reduce((acc, amount) => acc + amount, 0);
+        
+        const income = transactionAmounts
+          .filter(amount => amount > 0)
+          .reduce((acc, amount) => acc + amount, 0);
+          
+        const expense = Math.abs(transactionAmounts
+          .filter(amount => amount < 0)
+          .reduce((acc, amount) => acc + amount, 0));
+
+        balanceDisplay.textContent = formatCurrency(total);
+        incomeDisplay.innerHTML = `<i class="fas fa-arrow-up"></i> ${formatCurrency(income)}`;
+        expenseDisplay.innerHTML = `<i class="fas fa-arrow-down"></i> ${formatCurrency(expense)}`;
+      };
+
+      // FUNÇÃO PARA INICIALIZAR A LISTA DE TRANSAÇÕES
+      const init = () => {
+        transactionsUl.innerHTML = '';
+        checkEmptyTransactions();
+        transactions.forEach(addTransactionIntoDOM);
+        updateBalanceValues();
+      };
+
+      // FUNÇÃO PARA ATUALIZAR O LOCAL STORAGE
+      const updateLocalStorage = () => {
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+      };
+
+      // FUNÇÃO PARA GERAR UM ID PARA A TRANSAÇÃO
+      const generateID = () => Math.round(Math.random() * 1000000);
+
+      // CHAMA A FUNÇÃO DE INICIALIZAÇÃO
+      init();
+
+      // ADICIONA UM EVENTO DE SUBMISSÃO NO FORMULÁRIO
+      form.addEventListener('submit', event => {
+        event.preventDefault();
+        
+        const transactionName = inputTransactionName.value.trim();
+        const transactionAmount = inputTransactionAmount.value.trim();
+        
+        if (transactionName === '' || transactionAmount === '') {
+          alert('Por favor, preencha tanto o nome quanto o valor da transação');
+          return;
+        }
+        
+        const transaction = {
+          id: generateID(),
+          name: transactionName,
+          amount: Number(transactionAmount)
+        };
+        
+        transactions.push(transaction);
+        init();
+        updateLocalStorage();
+        
+        inputTransactionName.value = '';
+        inputTransactionAmount.value = '';
+        inputTransactionName.focus();
+      });
+
+      // FUNÇÃO PARA REMOVER TRANSAÇÃO (DEFINIDA NO ESCOPO GLOBAL PARA SER ACESSÍVEL PELO ONCLICK)
+      window.removeTransaction = removeTransaction;
+    </script>
+  </body>
+</html>

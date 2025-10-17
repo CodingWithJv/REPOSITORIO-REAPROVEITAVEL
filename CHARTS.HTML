@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Analytics Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #a29bfe;
+            --light-bg: #f8f9fa;
+            --border: #e9ecef;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f7;
+            color: #333;
+        }
+        
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .dashboard-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .dashboard-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .button {
+            padding: 8px 16px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .button:hover {
+            background-color: var(--secondary);
+        }
+        
+        .date-selector {
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .chart-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 16px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .chart-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .chart-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .chart-action {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s;
+        }
+        
+        .chart-action:hover {
+            color: var(--primary);
+        }
+        
+        canvas {
+            width: 100% !important;
+            height: 220px !important;
+        }
+        
+        /* Loading animation */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 220px;
+        }
+        
+        .loading::after {
+            content: "";
+            width: 30px;
+            height: 30px;
+            border: 3px solid #ddd;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: loading 1s linear infinite;
+        }
+        
+        @keyframes loading {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* Tooltip styles */
+        .tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 100;
+            font-size: 14px;
+            max-width: 250px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Analytics Dashboard</h1>
+            <div class="dashboard-controls">
+                <select class="date-selector" id="timeRangeSelector">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="365">Last Year</option>
+                </select>
+                <button class="button" id="refreshButton">Refresh Data</button>
+            </div>
+        </div>
+        
+        <div class="charts-grid">
+            <!-- Revenue Growth Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Revenue Growth</h2>
+                    <div class="chart-actions">
+                        <button class="chart-action" data-action="download" data-chart="revenueGrowth">📥</button>
+                        <button class="chart-action" data-action="fullscreen" data-chart="revenueGrowth">⛶</button>
+                    </div>
+                </div>
+                <div class="loading" id="revenueGrowthLoading"></div>
+                <canvas id="revenueGrowthChart"></canvas>
+            </div>
+            
+            <!-- User Engagement Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">User Engagement</h2>
+                    <div class="chart-actions">
+                        <button class="chart-action" data-action="download" data-chart="userEngagement">📥</button>
+                        <button class="chart-action" data-action="fullscreen" data-chart="userEngagement">⛶</button>
+                    </div>
+                </div>
+                <div class="loading" id="userEngagementLoading"></div>
+                <canvas id="userEngagementChart"></canvas>
+            </div>
+            
+            <!-- Market Share Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Market Share</h2>
+                    <div class="chart-actions">
+                        <button class="chart-action" data-action="download" data-chart="marketShare">📥</button>
+                        <button class="chart-action" data-action="fullscreen" data-chart="marketShare">⛶</button>
+                    </div>
+                </div>
+                <div class="loading" id="marketShareLoading"></div>
+                <canvas id="marketShareChart"></canvas>
+            </div>
+            
+            <!-- Sales by Region Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Sales by Region</h2>
+                    <div class="chart-actions">
+                        <button class="chart-action" data-action="download" data-chart="salesByRegion">📥</button>
+                        <button class="chart-action" data-action="fullscreen" data-chart="salesByRegion">⛶</button>
+                    </div>
+                </div>
+                <div class="loading" id="salesByRegionLoading"></div>
+                <canvas id="salesByRegionChart"></canvas>
+            </div>
+            
+            <!-- Conversion Rates Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Conversion Rates</h2>
+                    <div class="chart-actions">
+                        <button class="chart-action" data-action="download" data-chart="conversionRates">📥</button>
+                        <button class="chart-action" data-action="fullscreen" data-chart="conversionRates">⛶</button>
+                    </div>
+                </div>
+                <div class="loading" id="conversionRatesLoading"></div>
+                <canvas id="conversionRatesChart"></canvas>
+            </div>
+            
+            <!-- Customer Satisfaction Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Customer Satisfaction</h2>
+                    <div class="chart-actions">
+                        <button class="chart-action" data-action="download" data-chart="customerSatisfaction">📥</button>
+                        <button class="chart-action" data-action="fullscreen" data-chart="customerSatisfaction">⛶</button>
+                    </div>
+                </div>
+                <div class="loading" id="customerSatisfactionLoading"></div>
+                <canvas id="customerSatisfactionChart"></canvas>
+            </div>
+            
+            <!-- Traffic Sources Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Traffic Sources</h2>
+                    <div class="chart-actions">
+                        <button class="chart-action" data-action="download" data-chart="trafficSources">📥</button>
+                        <button class="chart-action" data-action="fullscreen" data-chart="trafficSources">⛶</button>
+                    </div>
+                </div>
+                <div class="loading" id="trafficSourcesLoading"></div>
+                <canvas id="trafficSourcesChart"></canvas>
+            </div>
+            
+            <!-- Platform Usage Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Platform Usage</h2>
+                    <div class="chart-actions">
+                        <button class="chart-action" data-action="download" data-chart="platformUsage">📥</button>
+                        <button class="chart-action" data-action="fullscreen" data-chart="platformUsage">⛶</button>
+                    </div>
+                </div>
+                <div class="loading" id="platformUsageLoading"></div>
+                <canvas id="platformUsageChart"></canvas>
+            </div>
+            
+            <!-- Monthly Performance Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">Monthly Performance</h2>
+                    <div class="chart-actions">
+                        <button class="chart-action" data-action="download" data-chart="monthlyPerformance">📥</button>
+                        <button class="chart-action" data-action="fullscreen" data-chart="monthlyPerformance">⛶</button>
+                    </div>
+                </div>
+                <div class="loading" id="monthlyPerformanceLoading"></div>
+                <canvas id="monthlyPerformanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+    
+    <script>       
+        // Utility functions
+        function getRandomNumber(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function getRandomColor() {
+            const colors = [
+                'rgba(108, 92, 231, 0.7)',
+                'rgba(162, 155, 254, 0.7)',
+                'rgba(252, 92, 101, 0.7)',
+                'rgba(253, 150, 68, 0.7)',
+                'rgba(38, 222, 129, 0.7)',
+                'rgba(46, 204, 113, 0.7)',
+                'rgba(52, 152, 219, 0.7)',
+                'rgba(155, 89, 182, 0.7)',
+                'rgba(52, 73, 94, 0.7)'
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function getGradient(ctx, chartArea, color) {
+            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+            gradient.addColorStop(0, color.replace('0.7', '0.1'));
+            gradient.addColorStop(1, color);
+            return gradient;
+        }
+
+        function showLoading(chartId) {
+            document.getElementById(`${chartId}Loading`).style.display = "flex";
+            document.getElementById(`${chartId}Chart`).style.opacity = "0";
+        }
+
+        function hideLoading(chartId) {
+            document.getElementById(`${chartId}Loading`).style.display = "none";
+            document.getElementById(`${chartId}Chart`).style.opacity = "1";
+        }
+
+        function simulateLoading(chartId, callback, delay = 800) {
+            showLoading(chartId);
+            setTimeout(() => {
+                hideLoading(chartId);
+                callback();
+            }, delay);
+        }
+
+        // Chart initialization functions
+        const chartInstances = {};
+
+        function initRevenueGrowthChart() {
+            simulateLoading('revenueGrowth', () => {
+                const ctx = document.getElementById('revenueGrowthChart').getContext('2d');
+                
+                // Data
+                const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const thisYearData = [150, 185, 130, 170, 185, 160, 80, 95, 120, 110, 120, 60];
+                const lastYearData = [140, 90, 150, 50, 70, 50, 90, 40, 80, 35, 30, 20];
+                
+                // Check if chart instance exists and destroy it
+                if (chartInstances.revenueGrowth) {
+                    chartInstances.revenueGrowth.destroy();
+                }
+                
+                // Chart
+                chartInstances.revenueGrowth = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'This Year',
+                                data: thisYearData,
+                                borderColor: 'rgba(108, 92, 231, 1)',
+                                backgroundColor: function(context) {
+                                    const chart = context.chart;
+                                    const {ctx, chartArea} = chart;
+                                    if (!chartArea) {
+                                        return 'rgba(108, 92, 231, 0.7)';
+                                    }
+                                    return getGradient(ctx, chartArea, 'rgba(108, 92, 231, 0.7)');
+                                },
+                                pointBackgroundColor: 'rgba(108, 92, 231, 1)',
+                                pointRadius: 4,
+                                tension: 0.3,
+                                fill: true
+                            },
+                            {
+                                label: 'Last Year',
+                                data: lastYearData,
+                                borderColor: 'rgba(99, 179, 237, 1)',
+                                backgroundColor: function(context) {
+                                    const chart = context.chart;
+                                    const {ctx, chartArea} = chart;
+                                    if (!chartArea) {
+                                        return 'rgba(99, 179, 237, 0.7)';
+                                    }
+                                    return getGradient(ctx, chartArea, 'rgba(99, 179, 237, 0.7)');
+                                },
+                                pointBackgroundColor: 'rgba(99, 179, 237, 1)',
+                                pointRadius: 4,
+                                tension: 0.3,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1500,
+                            easing: 'easeOutQuart'
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                displayColors: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: $${context.parsed.y}k`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function initUserEngagementChart() {
+            simulateLoading('userEngagement', () => {
+                const ctx = document.getElementById('userEngagementChart').getContext('2d');
+                
+                // Data
+                const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+                const activeUsers = [1000, 800, 1100, 1150, 1150, 1200];
+                const newUsers = [550, 780, 670, 600, 580, 450];
+                
+                // Check if chart instance exists and destroy it
+                if (chartInstances.userEngagement) {
+                    chartInstances.userEngagement.destroy();
+                }
+                
+                // Chart
+                chartInstances.userEngagement = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Active Users',
+                                data: activeUsers,
+                                backgroundColor: 'rgba(252, 92, 101, 0.7)',
+                                borderColor: 'rgba(252, 92, 101, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'New Users',
+                                data: newUsers,
+                                backgroundColor: 'rgba(38, 222, 129, 0.7)',
+                                borderColor: 'rgba(38, 222, 129, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1500,
+                            easing: 'easeOutQuart'
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function initMarketShareChart() {
+            simulateLoading('marketShare', () => {
+                const ctx = document.getElementById('marketShareChart').getContext('2d');
+                
+                // Data
+                const data = {
+                    labels: ['Our Product', 'Competitor A', 'Competitor B', 'Competitor C', 'Others'],
+                    datasets: [{
+                        data: [35, 25, 15, 10, 15],
+                        backgroundColor: [
+                            'rgba(108, 92, 231, 0.7)',
+                            'rgba(52, 152, 219, 0.7)',
+                            'rgba(253, 150, 68, 0.7)',
+                            'rgba(252, 92, 101, 0.7)',
+                            'rgba(38, 222, 129, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(108, 92, 231, 1)',
+                            'rgba(52, 152, 219, 1)',
+                            'rgba(253, 150, 68, 1)',
+                            'rgba(252, 92, 101, 1)',
+                            'rgba(38, 222, 129, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                };
+                
+                // Check if chart instance exists and destroy it
+                if (chartInstances.marketShare) {
+                    chartInstances.marketShare.destroy();
+                }
+                
+                // Chart
+                chartInstances.marketShare = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            animateRotate: true,
+                            animateScale: true,
+                            duration: 1500,
+                            easing: 'easeOutQuart'
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.parsed}%`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '60%'
+                    }
+                });
+            });
+        }
+
+        function initSalesByRegionChart() {
+            simulateLoading('salesByRegion', () => {
+                const ctx = document.getElementById('salesByRegionChart').getContext('2d');
+                
+                // Data for the Sales by Region chart matching the image
+                const data = {
+                    labels: ['North America', 'Europe', 'Asia', 'Africa', 'South America', 'Oceania'],
+                    datasets: [{
+                        data: [25, 20, 15, 17, 13, 10],
+                        backgroundColor: [
+                            'rgba(108, 92, 231, 0.7)',  // Purple - North America
+                            'rgba(52, 152, 219, 0.7)',  // Blue - Europe
+                            'rgba(252, 92, 101, 0.7)',  // Pink - Asia
+                            'rgba(38, 222, 129, 0.7)',  // Green - Africa
+                            'rgba(99, 179, 237, 0.7)',  // Light blue - South America
+                            'rgba(253, 150, 68, 0.7)'   // Yellow/Orange - Oceania
+                        ],
+                        borderColor: [
+                            'rgba(108, 92, 231, 1)',
+                            'rgba(52, 152, 219, 1)',
+                            'rgba(252, 92, 101, 1)',
+                            'rgba(38, 222, 129, 1)',
+                            'rgba(99, 179, 237, 1)',
+                            'rgba(253, 150, 68, 1)'
+                        ],
+                        borderWidth: 1,
+                        hoverOffset: 15
+                    }]
+                };
+                
+                // Check if chart instance exists and destroy it
+                if (chartInstances.salesByRegion) {
+                    chartInstances.salesByRegion.destroy();
+                }
+                
+                // Chart - using pie chart type to match the image
+                chartInstances.salesByRegion = new Chart(ctx, {
+                    type: 'pie',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: 15
+                        },
+                        animation: {
+                            animateRotate: true,
+                            animateScale: true,
+                            duration: 1500,
+                            easing: 'easeOutQuart'
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    font: {
+                                        size: 11
+                                    },
+                                    boxWidth: 15,
+                                    padding: 10
+                                }
+                            },
+                            title: {
+                                display: false,
+                                text: 'Sales by Region',
+                                position: 'top',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.parsed}%`;
+                                    }
+                                }
+                            }
+                        },
+                        elements: {
+                            arc: {
+                                borderWidth: 1
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function initConversionRatesChart() {
+            simulateLoading('conversionRates', () => {
+                const ctx = document.getElementById('conversionRatesChart').getContext('2d');
+                
+                // Data
+                const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const conversionRates = [5.1, 6.8, 3.0, 6.9, 6.7, 6.8, 4.0, 3.9, 6.1, 5.8, 4.9, 5.9];
+                
+                // Check if chart instance exists and destroy it
+                if (chartInstances.conversionRates) {
+                    chartInstances.conversionRates.destroy();
+                }
+                
+                // Chart
+                chartInstances.conversionRates = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Conversion Rate (%)',
+                            data: conversionRates,
+                            borderColor: 'rgba(253, 150, 68, 1)',
+                            backgroundColor: function(context) {
+                                const chart = context.chart;
+                                const {ctx, chartArea} = chart;
+                                if (!chartArea) {
+                                    return 'rgba(253, 150, 68, 0.7)';
+                                }
+                                return getGradient(ctx, chartArea, 'rgba(253, 150, 68, 0.7)');
+                            },
+                            pointBackgroundColor: 'rgba(253, 150, 68, 1)',
+                            pointRadius: 4,
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1500,
+                            easing: 'easeOutQuart'
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                displayColors: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.parsed.y}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function initCustomerSatisfactionChart() {
+            simulateLoading('customerSatisfaction', () => {
+                const ctx = document.getElementById('customerSatisfactionChart').getContext('2d');
+                
+                // Data
+                const labels = ['Product Quality', 'Customer Service', 'Price', 'UX/UI', 'Features', 'Reliability'];
+                const thisQuarter = [95, 85, 65, 75, 80, 90];
+                const lastQuarter = [90, 70, 60, 72, 75, 85];
+                
+                // Check if chart instance exists and destroy it
+                if (chartInstances.customerSatisfaction) {
+                    chartInstances.customerSatisfaction.destroy();
+                }
+                
+                // Chart
+                chartInstances.customerSatisfaction = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'This Quarter',
+                                data: thisQuarter,
+                                backgroundColor: 'rgba(108, 92, 231, 0.3)',
+                                borderColor: 'rgba(108, 92, 231, 1)',
+                                pointBackgroundColor: 'rgba(108, 92, 231, 1)',
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: 'rgba(108, 92, 231, 1)'
+                            },
+                            {
+                                label: 'Last Quarter',
+                                data: lastQuarter,
+                                backgroundColor: 'rgba(99, 179, 237, 0.3)',
+                                borderColor: 'rgba(99, 179, 237, 1)',
+                                pointBackgroundColor: 'rgba(99, 179, 237, 1)',
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: 'rgba(99, 179, 237, 1)'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1500,
+                            easing: 'easeOutQuart'
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                min: 0,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 20
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function initTrafficSourcesChart() {
+            simulateLoading('trafficSources', () => {
+                const ctx = document.getElementById('trafficSourcesChart').getContext('2d');
+                
+                // Data
+                const data = {
+                    labels: ['Direct', 'Organic Search', 'Paid Search', 'Social Media', 'Email', 'Referral'],
+                    datasets: [{
+                        data: [20, 15, 18, 23, 12, 12],
+                        backgroundColor: [
+                            'rgba(108, 92, 231, 0.7)',
+                            'rgba(52, 152, 219, 0.7)',
+                            'rgba(252, 92, 101, 0.7)',
+                            'rgba(38, 222, 129, 0.7)',
+                            'rgba(99, 179, 237, 0.7)',
+                            'rgba(253, 150, 68, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(108, 92, 231, 1)',
+                            'rgba(52, 152, 219, 1)',
+                            'rgba(252, 92, 101, 1)',
+                            'rgba(38, 222, 129, 1)',
+                            'rgba(99, 179, 237, 1)',
+                            'rgba(253, 150, 68, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                };
+                
+                // Check if chart instance exists and destroy it
+                if (chartInstances.trafficSources) {
+                    chartInstances.trafficSources.destroy();
+                }
+                
+                // Chart
+                chartInstances.trafficSources = new Chart(ctx, {
+                    type: 'pie',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            animateRotate: true,
+                            animateScale: true,
+                            duration: 1500,
+                            easing: 'easeOutQuart'
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.parsed}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function initPlatformUsageChart() {
+            simulateLoading('platformUsage', () => {
+                const ctx = document.getElementById('platformUsageChart').getContext('2d');
+                
+                // Data
+                const labels = ['Mobile', 'Desktop', 'Tablet', 'Smart TV', 'Other'];
+                const usersData = [210, 95, 180, 85, 145];
+                
+                // Check if chart instance exists and destroy it
+                if (chartInstances.platformUsage) {
+                    chartInstances.platformUsage.destroy();
+                }
+                
+                // Chart
+                chartInstances.platformUsage = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Users (thousands)',
+                            data: usersData,
+                            backgroundColor: 'rgba(108, 92, 231, 0.7)',
+                            borderColor: 'rgba(108, 92, 231, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1500,
+                            easing: 'easeOutQuart'
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function initMonthlyPerformanceChart() {
+            simulateLoading('monthlyPerformance', () => {
+                const ctx = document.getElementById('monthlyPerformanceChart').getContext('2d');
+                
+                // Data
+                const labels = ['Q1', 'Q2', 'Q3', 'Q4'];
+                const revenueData = [120, 185, 125, 170];
+                const profitData = [45, 35, 80, 75];
+                
+                // Check if chart instance exists and destroy it
+                if (chartInstances.monthlyPerformance) {
+                    chartInstances.monthlyPerformance.destroy();
+                }
+                
+                // Chart
+                chartInstances.monthlyPerformance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: 'Revenue',
+                                data: revenueData,
+                                backgroundColor: 'rgba(252, 92, 101, 0.7)',
+                                borderColor: 'rgba(252, 92, 101, 1)',
+                                borderWidth: 1,
+                                order: 2
+                            },
+                            {
+                                type: 'line',
+                                label: 'Profit',
+                                data: profitData,
+                                borderColor: 'rgba(52, 73, 94, 1)',
+                                backgroundColor: 'rgba(52, 73, 94, 0.1)',
+                                borderWidth: 2,
+                                pointBackgroundColor: 'rgba(52, 73, 94, 1)',
+                                pointRadius: 4,
+                                tension: 0.3,
+                                fill: false,
+                                order: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 1500,
+                            easing: 'easeOutQuart'
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                titleColor: 'white',
+                                bodyColor: 'white',
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.dataset.label;
+                                        const value = context.parsed.y;
+                                        return `${label}: ${value}k`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function initAllCharts() {
+            // Initialize all charts
+            initRevenueGrowthChart();
+            initUserEngagementChart();
+            initMarketShareChart();
+            initSalesByRegionChart();
+            initConversionRatesChart();
+            initCustomerSatisfactionChart();
+            initTrafficSourcesChart();
+            initPlatformUsageChart();
+            initMonthlyPerformanceChart();
+        }
+
+        // When document is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set global Chart.js defaults
+            Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+            Chart.defaults.responsive = true;
+            Chart.defaults.maintainAspectRatio = false;
+            
+            // Initialize all charts with a small delay to ensure DOM elements are ready
+            setTimeout(initAllCharts, 100);
+            
+            // Add event listener for refresh button
+            document.getElementById('refreshButton').addEventListener('click', function() {
+                initAllCharts();
+            });
+            
+            // Add event listener for time range selector
+            document.getElementById('timeRangeSelector').addEventListener('change', function() {
+                document.getElementById('refreshButton').click();
+            });
+            
+            // Add event listeners for chart actions (download, fullscreen)
+            document.querySelectorAll('.chart-action').forEach(button => {
+                button.addEventListener('click', function() {
+                    const action = this.getAttribute('data-action');
+                    const chartId = this.getAttribute('data-chart');
+                    
+                    if (action === 'download') {
+                        // Download logic
+                        const canvas = document.getElementById(`${chartId}Chart`);
+                        const image = canvas.toDataURL('image/png');
+                        const link = document.createElement('a');
+                        link.download = `${chartId}-chart.png`;
+                        link.href = image;
+                        link.click();
+                    } else if (action === 'fullscreen') {
+                        // Fullscreen logic - simple implementation
+                        const container = this.closest('.chart-container');
+                        if (!document.fullscreenElement) {
+                            container.requestFullscreen().catch(err => {
+                                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                            });
+                        } else {
+                            document.exitFullscreen();
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
